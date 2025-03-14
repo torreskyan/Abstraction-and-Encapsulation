@@ -58,24 +58,32 @@ public:
 };
 
 // Function to check if ID already exists
-bool idExists(const vector<Employee*>& employees, string id) {
-    return any_of(employees.begin(), employees.end(), [id](Employee* emp) {
+bool idExists(const vector<Employee*>& employees, const string& id) {
+    return any_of(employees.begin(), employees.end(), [&id](Employee* emp) {
         return emp->getId() == id;
     });
 }
 
 // Function to check if Name already exists
-bool nameExists(const vector<Employee*>& employees, string name) {
-    return any_of(employees.begin(), employees.end(), [name](Employee* emp) {
+bool nameExists(const vector<Employee*>& employees, const string& name) {
+    return any_of(employees.begin(), employees.end(), [&name](Employee* emp) {
         return emp->getName() == name;
     });
 }
 
-// Function to validate menu choice (accepts number optionally followed by a space)
-bool isValidMenuChoice(const string& input) {
-    string trimmedInput = input;
-    trimmedInput.erase(trimmedInput.find_last_not_of(" ") + 1); // Trim trailing spaces
-    return !trimmedInput.empty() && all_of(trimmedInput.begin(), trimmedInput.end(), ::isdigit);
+// Function to validate numeric input
+bool isValidNumericInput(const string& input) {
+    return !input.empty() && all_of(input.begin(), input.end(), [](char c) {
+        return isdigit(c) || c == '.'; // Allows decimal numbers
+    });
+}
+
+// Function to validate non-empty name with spaces allowed
+bool isValidName(const string& name) {
+    string trimmedName = name;
+    trimmedName.erase(0, trimmedName.find_first_not_of(" ")); // Trim leading spaces
+    trimmedName.erase(trimmedName.find_last_not_of(" ") + 1); // Trim trailing spaces
+    return !trimmedName.empty();
 }
 
 int main() {
@@ -91,18 +99,18 @@ int main() {
         cout << "4 - Display Payroll Report\n";
         cout << "5 - Exit\n";
         cout << "Enter your choice: ";
-        cin >> ws; // Trim leading whitespace
+        cin >> ws;
         getline(cin, choiceInput);
 
-        if (!isValidMenuChoice(choiceInput)) {
-            cout << "Invalid input. Please enter again.\n";
+        if (!isValidNumericInput(choiceInput)) {
+            cout << "Invalid input. Please enter a valid number.\n";
             continue;
         }
 
         choice = stoi(choiceInput);
 
         if (choice == 1 || choice == 2 || choice == 3) {
-            string id, name;
+            string id, name, salaryInput;
             double salary;
 
             do {
@@ -114,35 +122,80 @@ int main() {
                 }
             } while (idExists(employees, id));
 
+            cin.ignore();
             do {
                 cout << "Enter Name: ";
-                cin.ignore();
                 getline(cin, name);
 
-                if (nameExists(employees, name)) {
+                if (!isValidName(name)) {
+                    cout << "Error: Name cannot be empty or only spaces. Try again.\n";
+                } else if (nameExists(employees, name)) {
                     cout << "Error: Name already exists! Please use a unique name.\n";
                 }
-            } while (nameExists(employees, name));
+            } while (!isValidName(name) || nameExists(employees, name));
 
             if (choice == 1) {
-                cout << "Enter Fixed Monthly Salary: ";
-                cin >> salary;
+                do {
+                    cout << "Enter Fixed Monthly Salary: ";
+                    cin >> salaryInput;
+
+                    if (!isValidNumericInput(salaryInput)) {
+                        cout << "Error: Please enter a valid numeric value.\n";
+                    }
+                } while (!isValidNumericInput(salaryInput));
+
+                salary = stod(salaryInput);
                 employees.push_back(new FullTimeEmployee(id, name, salary));
+
             } else if (choice == 2) {
+                string wageInput;
                 int hours;
-                cout << "Enter Hourly Wage: ";
-                cin >> salary;
+
+                do {
+                    cout << "Enter Hourly Wage: ";
+                    cin >> wageInput;
+
+                    if (!isValidNumericInput(wageInput)) {
+                        cout << "Error: Please enter a valid numeric value.\n";
+                    }
+                } while (!isValidNumericInput(wageInput));
+
+                salary = stod(wageInput);
+
                 cout << "Enter Number of Hours Worked: ";
-                cin >> hours;
+                while (!(cin >> hours) || hours < 0) {
+                    cout << "Error: Enter a valid number of hours.\n";
+                    cin.clear();
+                    cin.ignore(numeric_limits<streamsize>::max(), '\n');
+                }
+
                 employees.push_back(new PartTimeEmployee(id, name, salary, hours));
+
             } else if (choice == 3) {
+                string payInput;
                 int projects;
-                cout << "Enter Payment Per Project: ";
-                cin >> salary;
+
+                do {
+                    cout << "Enter Payment Per Project: ";
+                    cin >> payInput;
+
+                    if (!isValidNumericInput(payInput)) {
+                        cout << "Error: Please enter a valid numeric value.\n";
+                    }
+                } while (!isValidNumericInput(payInput));
+
+                salary = stod(payInput);
+
                 cout << "Enter Number of Projects Completed: ";
-                cin >> projects;
+                while (!(cin >> projects) || projects < 0) {
+                    cout << "Error: Enter a valid number of projects.\n";
+                    cin.clear();
+                    cin.ignore(numeric_limits<streamsize>::max(), '\n');
+                }
+
                 employees.push_back(new ContractualEmployee(id, name, salary, projects));
             }
+
         } else if (choice == 4) {
             cout << "\n------ Employee Payroll Report ------\n";
             for (const auto& emp : employees) {
@@ -153,6 +206,7 @@ int main() {
         } else {
             cout << "Invalid choice. Please try again.\n";
         }
+
     } while (choice != 5);
 
     // Clean up allocated memory
